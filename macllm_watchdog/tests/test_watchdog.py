@@ -28,16 +28,24 @@ def test_webhook_verification_success(mock_home_dir):
     
     # Create test payload
     payload = {"type": "test.event", "data": {"foo": "bar"}}
-    payload_bytes = json.dumps(payload).encode()
+    payload_str = json.dumps(payload)  # Keep as string for signing
+    payload_bytes = payload_str.encode()  # Convert to bytes for webhook
     
-    # Generate real svix headers
-    timestamp = datetime(2024, 2, 2, tzinfo=timezone.utc)
+    # Generate real svix headers with current timestamp
+    timestamp = datetime.now(timezone.utc)
     msg_id = "msg_test"
-    signature = webhook.sign(msg_id, timestamp, payload_bytes)
+    
+    # Generate signature using svix's internal method
+    signature = webhook.sign(
+        msg_id,
+        timestamp,
+        payload_str  # Pass string for signing
+    )
+    
     headers = {
         "svix-id": msg_id,
-        "svix-timestamp": timestamp.isoformat(),
-        "svix-signature": signature
+        "svix-timestamp": str(int(timestamp.timestamp())),
+        "svix-signature": signature  # svix handles v1 prefix internally
     }
     
     # Verify webhook
@@ -80,14 +88,22 @@ def test_logging_content(mock_home_dir):
     
     # Create and verify a webhook event
     payload = {"type": "test.event", "data": {"foo": "bar"}}
-    payload_bytes = json.dumps(payload).encode()
-    timestamp = datetime(2024, 2, 2, tzinfo=timezone.utc)
+    payload_str = json.dumps(payload)  # Keep as string for signing
+    payload_bytes = payload_str.encode()  # Convert to bytes for webhook
+    timestamp = datetime.now(timezone.utc)
     msg_id = "msg_test"
-    signature = webhook.sign(msg_id, timestamp, payload_bytes)
+    
+    # Generate signature using svix's internal method
+    signature = webhook.sign(
+        msg_id,
+        timestamp,
+        payload_str  # Pass string for signing
+    )
+    
     headers = {
         "svix-id": msg_id,
-        "svix-timestamp": timestamp.isoformat(),
-        "svix-signature": signature
+        "svix-timestamp": str(int(timestamp.timestamp())),
+        "svix-signature": signature  # svix handles v1 prefix internally
     }
     
     watchdog.verify_webhook(payload_bytes, headers)
